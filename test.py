@@ -26,4 +26,4 @@ for i in tqdm(range(100000)):
         print(test_list[i])
         print(opt.print_name)
 
-input("Press enter to exit")
+input("Please, press enter to exit")
