@@ -1,5 +1,7 @@
 import loss
 from Dataset import Dataset
+import logs
+import FID
 
 import argparse
 import os
@@ -18,22 +20,27 @@ import torch_fidelity
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--new_dataset_size", type=int, default="1", help="value between 0 and 1")
-parser.add_argument("--batch_size", type=int, default="64")
+parser.add_argument("--batch_size", type=int, default="128")
 parser.add_argument("--num_total_steps", type=int, default="100000")
 parser.add_argument("--num_epoch_steps", type=int, default="5000")
 parser.add_argument("--num_dis_updates", type=int, default="5")
-parser.add_argument("--num_samples_for_metrics", type=int, default="50000")
+# parser.add_argument("--num_samples_for_metrics", type=int, default="50000")
 parser.add_argument("--lr", type=float, default="2e-4")
-parser.add_argument("--z_size", type=int, default="128")
+parser.add_argument("--z_size", type=int, default="128", help = "size of noise vector")
 parser.add_argument("--z_type", type=str, default="normal")
-parser.add_argument("--leading_metric", type=str, default="FID")
-parser.add_argument("--disable_sn", type=bool, default="False")
-parser.add_argument("--conditional", type=bool, default="False")
-parser.add_argument("--dir_dataset", type=str, default="dataset")
+# parser.add_argument("--leading_metric", type=str, default="ISC")
+parser.add_argument("--disable_sn", type=bool, default="False", help = "disable spectral normalization")
+parser.add_argument("--conditional", type=bool, default="False", help = "conditional GAN")
+# parser.add_argument("--dir_dataset", type=str, default="dataset")
 parser.add_argument("--dir_logs", type=str, default="logs")
 
 opt = parser.parse_args()
 print(opt)
+
+os.makedirs(opt.dir_logs + "/losses", exist_ok=True)
+os.makedirs(opt.dir_logs + "/metrics", exist_ok=True)
+os.makedirs(opt.dir_logs + "/images", exist_ok=True)
+os.makedirs(opt.dir_logs + "/models", exist_ok=True)
 
 class Generator(torch.nn.Module):
     # Adapted from https://github.com/christiancosgrove/pytorch-spectral-normalization-gan
@@ -111,13 +118,6 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 num_classes = 10 if opt.conditional else 0  # unconditional
 
-leading_metric, last_best_metric, metric_greater_cmp = {
-    'ISC': (torch_fidelity.KEY_METRIC_ISC_MEAN, 0.0, float.__gt__),
-    'FID': (torch_fidelity.KEY_METRIC_FID, float('inf'), float.__lt__),
-    'KID': (torch_fidelity.KEY_METRIC_KID_MEAN, float('inf'), float.__lt__),
-    'PPL': (torch_fidelity.KEY_METRIC_PPL_MEAN, float('inf'), float.__lt__),
-}[opt.leading_metric]
-
 # create Generator and Discriminator models
 G = Generator(opt.z_size).to(device).train()
 D = Discriminator(not opt.disable_sn).to(device).train()
@@ -131,14 +131,18 @@ optim_D = torch.optim.Adam(D.parameters(), lr=opt.lr, betas=(0.0, 0.9))
 scheduler_G = torch.optim.lr_scheduler.LambdaLR(optim_G, lambda step: 1. - step / opt.num_total_steps)
 scheduler_D = torch.optim.lr_scheduler.LambdaLR(optim_D, lambda step: 1. - step / opt.num_total_steps)
 
-# initialize logging
-tb = tensorboard.SummaryWriter(log_dir=opt.dir_logs)
-pbar = tqdm(total=opt.num_total_steps, desc='Training', unit='batch')
-os.makedirs(opt.dir_logs, exist_ok=True)
+block_idx = FID.InceptionV3.BLOCK_INDEX_BY_DIM[2048]
+model = FID.InceptionV3([block_idx])
+model = model.cuda()
 
+losses_G = []
+losses_D = []
+num_steps_losses = []
 
+fretchet_dist_list=[]
+num_step_FID=[]
 
-for step in range(opt.num_total_steps):
+for step in tqdm(range(opt.num_total_steps), position=0, leave=True):
     # read next batch
     try:
         real_img, real_label = next(loader_iter)
@@ -171,14 +175,14 @@ for step in range(opt.num_total_steps):
         loss_D.backward()
         optim_D.step()
 
-    # log
-    if (step + 1) % 10 == 0:
-        step_info = {'loss_G': loss_G.cpu().item(), 'loss_D': loss_D.cpu().item()}
-        pbar.set_postfix(step_info)
-        for k, v in step_info.items():
-            tb.add_scalar(f'loss/{k}', v, global_step=step)
-        tb.add_scalar(f'LR/lr', scheduler_G.get_last_lr()[0], global_step=step)
-    pbar.update(1)
+    # logging the losses
+    if (step + 1) % 100 == 0:
+        print(f"\nloss_G: {loss_G.cpu().item()} loss_D: {loss_D.cpu().item()}")
+        losses_G.append(loss_G.cpu().item())
+        losses_D.append(loss_D.cpu().item())
+        num_steps_losses.append(step)
+        logs.print_losses(losses_G, losses_D, num_steps_losses, opt.dir_logs)
+        
 
     # decay LR
     scheduler_G.step()
@@ -186,54 +190,43 @@ for step in range(opt.num_total_steps):
 
     # check if it is validation time
     next_step = step + 1
-    if next_step % opt.num_epoch_steps != 0:
-        continue
-    pbar.close()
-    G.eval()
-    print('Evaluating the generator...')
-
-    # compute and log generative metrics
-    metrics = torch_fidelity.calculate_metrics(
-        input1=torch_fidelity.GenerativeModelModuleWrapper(G, opt.z_size, opt.z_type, num_classes),
-        input1_model_num_samples=opt.num_samples_for_metrics,
-        input2='cifar10-train',
-        isc=True,
-        fid=True,
-        kid=True,
-        ppl=True,
-        ppl_epsilon=1e-2,
-        ppl_sample_similarity_resize=64,
-    )
     
-    # log metrics
-    for k, v in metrics.items():
-        tb.add_scalar(f'metrics/{k}', v, global_step=next_step)
+    # Checking if validation is about to begin
+    if next_step % opt.num_epoch_steps != 0:
+        continue # if we are here, we return to the beginning of the loop
+    
+    print(f"\nfake img: statistics: \ntype: {type(fake)} \n size: {fake.size()} ")
 
-    # log observed images
-    samples_vis = G(z_vis).detach().cpu()
-    samples_vis = torchvision.utils.make_grid(samples_vis).permute(1, 2, 0).numpy()
-    tb.add_image('observations', samples_vis, global_step=next_step, dataformats='HWC')
-    samples_vis = PIL.Image.fromarray(samples_vis)
-    samples_vis.save(os.path.join(opt.dir_logs, f'{next_step:06d}.png'))
 
-    # save the generator if it improved
-    if metric_greater_cmp(metrics[leading_metric], last_best_metric):
-        print(f'Leading metric {leading_metric} improved from {last_best_metric} to {metrics[leading_metric]}')
+    print(f"\nEvaluating FID Score..")
+    
+    # Get FID Score (my way)
+    FID_score = FID.calculate_frechet(real_img, fake, model)
+    print(f"\nFID Score of step: {step} is {FID_score}")
+    fretchet_dist_list.append(FID_score)
+    num_step_FID.append(step)
+    logs.print_FID(fretchet_dist_list, num_step_FID, opt.dir_logs)
 
-        last_best_metric = metrics[leading_metric]
+    # Get FID Score (Barg.'s way - needs to be implemented)
+    #################################################
 
-        dummy_input = torch.zeros(1, opt.z_size, device=device)
-        torch.jit.save(torch.jit.trace(G, (dummy_input,)), os.path.join(opt.dir_logs, 'generator.pth'))
-        torch.onnx.export(G, dummy_input, os.path.join(opt.dir_logs, 'generator.onnx'),
-            opset_version=11, input_names=['z'], output_names=['rgb'],
-            dynamic_axes={'z': {0: 'batch'}, 'rgb': {0: 'batch'}},
-        )
+    # Save images of the epoch
+    samples_vis = G(z_vis)
+    # print(type(samples_vis))
+    # print(samples_vis.shape)
+    # samples_vis_2 = torchvision.utils.make_grid(samples_vis).permute(1, 2, 0).numpy()
+    # print(type(samples_vis_2))
+    # print(samples_vis_2.shape)
+    # samples_vis_3 = PIL.Image.fromarray(samples_vis_2)
+    # samples_vis_3.save(os.path.join(opt.dir_logs + "/images", f'{next_step:06d}.png'))
 
-    # resume training
-    if next_step <= opt.num_total_steps:
-        pbar = tqdm(total=opt.num_total_steps, initial=next_step, desc='Training', unit='batch')
+    logs.save_tensor_images(samples_vis, opt.dir_logs, step)
+
+    # Save the generator if it improved
+    logs.save_gen(fretchet_dist_list, G, opt.z_size, opt.dir_logs, device)
+
+    if next_step<= opt.num_total_steps:
         G.train()
 
-tb.close()
-print(f'Training finished; the model with best {leading_metric} value ({last_best_metric}) is saved as '
-      f'{opt.dir_logs}/generator.onnx and {opt.dir_logs}/generator.pth')
+
+print(f'Training finished')
