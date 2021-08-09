@@ -79,3 +79,15 @@ def save_tensor_images(image_tensor, destination, step, num_images=25, size=(3, 
     plt.imshow(image_grid.permute(1, 2, 0).squeeze())
     plt.savefig(os.path.join(destination + "/images", f'{step:06d}.png'))
     plt.close()
+
+
+def create_settings_file(input, destination):
+    
+    complete_name = os.path.join(destination, "settings.txt")
+    f = open(complete_name, "w+")
+
+    f.write(str(input))
+
+    f.close()
+
+    print("created settings file")
