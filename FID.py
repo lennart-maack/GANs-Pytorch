@@ -82,8 +82,12 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
             np.trace(sigma2) - 2 * tr_covmean)
 
 
-def calculate_frechet(images_real,images_fake, model):
+def calculate_frechet(images_real,images_fake, dims, device):
     
+    block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dims]
+
+    model = InceptionV3([block_idx]).to(device)
+
     mu_1,std_1 = calculate_activation_statistics(images_real,model,cuda=True)
     mu_2,std_2 = calculate_activation_statistics(images_fake,model,cuda=True)
     

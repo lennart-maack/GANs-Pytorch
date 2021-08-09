@@ -20,6 +20,8 @@ parser.add_argument("--num_dis_updates", type=int, default="5")
 parser.add_argument("--lr", type=float, default="2e-4")
 parser.add_argument("--z_size", type=int, default="128", help = "size of noise vector")
 parser.add_argument("--z_type", type=str, default="normal")
+parser.add_argument("--device_inception", type=str, default="cuda", help="Device to run calculations")
+parser.add_argument("--dims_inception", type=int, default=2048, help="Dimensionality of features returned by Inception")
 # parser.add_argument("--leading_metric", type=str, default="ISC")
 parser.add_argument("--disable_sn", type=bool, default=False, help = "disable spectral normalization")
 parser.add_argument("--conditional", type=bool, default=False, help = "conditional GAN")
@@ -126,9 +128,6 @@ optim_D = torch.optim.Adam(D.parameters(), lr=opt.lr, betas=(0.0, 0.9))
 scheduler_G = torch.optim.lr_scheduler.LambdaLR(optim_G, lambda step: 1. - step / opt.num_total_steps)
 scheduler_D = torch.optim.lr_scheduler.LambdaLR(optim_D, lambda step: 1. - step / opt.num_total_steps)
 
-block_idx = FID.InceptionV3.BLOCK_INDEX_BY_DIM[2048]
-model = FID.InceptionV3([block_idx])
-model = model.cuda()
 
 losses_G = []
 losses_D = []
@@ -194,7 +193,7 @@ for step in tqdm(range(opt.num_total_steps), position=0, leave=True):
     print(f"\nEvaluating FID Score..")
 
     # Get FID Score (my way)
-    FID_score = FID.calculate_frechet(real_img, fake, model)
+    FID_score = FID.calculate_frechet(real_img, fake, opt.dims_inception, opt.device_inception)
     print(f"\nFID Score of step: {next_step} is {FID_score}")
     fretchet_dist_list.append(FID_score)
     num_step_FID.append(step)
