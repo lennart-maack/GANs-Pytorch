@@ -6,16 +6,8 @@ import FID
 import argparse
 import os
 
-import PIL
 import torch
-import torchvision
 from tqdm import tqdm
-from torch.utils import tensorboard
-from sklearn.model_selection import train_test_split
-import torch.utils.data as data_utils
-
-
-import torch_fidelity
 
 parser = argparse.ArgumentParser()
 
@@ -29,8 +21,8 @@ parser.add_argument("--lr", type=float, default="2e-4")
 parser.add_argument("--z_size", type=int, default="128", help = "size of noise vector")
 parser.add_argument("--z_type", type=str, default="normal")
 # parser.add_argument("--leading_metric", type=str, default="ISC")
-parser.add_argument("--disable_sn", type=bool, default="False", help = "disable spectral normalization")
-parser.add_argument("--conditional", type=bool, default="False", help = "conditional GAN")
+parser.add_argument("--disable_sn", type=bool, default=False, help = "disable spectral normalization")
+parser.add_argument("--conditional", type=bool, default=False, help = "conditional GAN")
 # parser.add_argument("--dir_dataset", type=str, default="dataset")
 parser.add_argument("--dir_logs", type=str, default="logs")
 
@@ -41,6 +33,9 @@ os.makedirs(opt.dir_logs + "/losses", exist_ok=True)
 os.makedirs(opt.dir_logs + "/metrics", exist_ok=True)
 os.makedirs(opt.dir_logs + "/images", exist_ok=True)
 os.makedirs(opt.dir_logs + "/models", exist_ok=True)
+os.makedirs(opt.dir_logs + "/settings", exist_ok=True)
+
+logs.create_settings_file(opt, opt.dir_logs + "/settings")
 
 class Generator(torch.nn.Module):
     # Adapted from https://github.com/christiancosgrove/pytorch-spectral-normalization-gan
@@ -194,15 +189,12 @@ for step in tqdm(range(opt.num_total_steps), position=0, leave=True):
     # Checking if validation is about to begin
     if next_step % opt.num_epoch_steps != 0:
         continue # if we are here, we return to the beginning of the loop
-    
-    print(f"\nfake img: statistics: \ntype: {type(fake)} \n size: {fake.size()} ")
-
 
     print(f"\nEvaluating FID Score..")
     
     # Get FID Score (my way)
     FID_score = FID.calculate_frechet(real_img, fake, model)
-    print(f"\nFID Score of step: {step} is {FID_score}")
+    print(f"\nFID Score of step: {next_step} is {FID_score}")
     fretchet_dist_list.append(FID_score)
     num_step_FID.append(step)
     logs.print_FID(fretchet_dist_list, num_step_FID, opt.dir_logs)
@@ -225,7 +217,7 @@ for step in tqdm(range(opt.num_total_steps), position=0, leave=True):
     # Save the generator if it improved
     logs.save_gen(fretchet_dist_list, G, opt.z_size, opt.dir_logs, device)
 
-    if next_step<= opt.num_total_steps:
+    if next_step <= opt.num_total_steps:
         G.train()
 
 
