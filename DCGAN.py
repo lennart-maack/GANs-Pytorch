@@ -190,8 +190,9 @@ for step in tqdm(range(opt.num_total_steps), position=0, leave=True):
     if next_step % opt.num_epoch_steps != 0:
         continue # if we are here, we return to the beginning of the loop
 
+    G.eval()
     print(f"\nEvaluating FID Score..")
-    
+
     # Get FID Score (my way)
     FID_score = FID.calculate_frechet(real_img, fake, model)
     print(f"\nFID Score of step: {next_step} is {FID_score}")
