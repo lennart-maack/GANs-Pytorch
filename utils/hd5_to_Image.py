@@ -37,7 +37,7 @@ if __name__ == "__main__":
                             else:
                                 label = 0
                             image = group[sub_group_name]["images"][i]
-                            img_name = f'{gname}_{sub_group_name}_{i}_' + '{0:05d}'.format(counter) + ".png"
+                            img_name = f'{gname}_{sub_group_name}_{i}_' + '{0:05d}'.format(counter)
                             img_to_folder(image, img_name, image_dir)
                             json_list_append(label, labels, img_name)
                             create_json_file(labels, json_file_dir)
