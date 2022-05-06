@@ -1,4 +1,10 @@
 
+"""
+To create cleaner code: You could create a BUS dataset class with different sizes and the __len__ instead of different methods like here
+
+"""
+
+
 
 def check_length(BUS_set):
     """

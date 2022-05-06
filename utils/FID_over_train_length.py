@@ -15,7 +15,7 @@ def create_x_values(result) -> list:
 def create_FID_over_nkimgs_plot(training_session_dir, output_dir, name):
 
     """
-    Creates a .png file with the FID score plottet over the number of kimgs seen while training.
+    Creates a .png file with the FID score plotted over the number of kimgs seen while training.
 
     training_session_dir: Directory to the folder of one or multiple training sessions - each training session has! to have a metrics.csv included which has as column 'fid50k_full'
 
@@ -41,8 +41,9 @@ def create_FID_over_nkimgs_plot(training_session_dir, output_dir, name):
     ax=fig.add_subplot()
     ax.plot(x_values, y_values, color="C0")
 
-    ax.set(xlabel="Number k imgs", ylabel="FID", title="FID over kimgs seen by GAN")
-    ax.set_ylim([50, 500])
+    ax.set(xlabel="Number k imgs", ylabel="FID", title=f"FID over kimgs seen by GAN {name}")
+    ax.set_ylim([10, 500])
+    ax.yaxis.set_ticks([25, 50, 75, 100, 150, 200, 300, 450])
 
     ax.grid()
 
@@ -53,9 +54,9 @@ def create_FID_over_nkimgs_plot(training_session_dir, output_dir, name):
 
 if __name__ == "__main__":
     
-    name = "StyleGAN2_50"
-    training_session_dir = r""
+    name = "DiffAUG_2"
+    training_session_dir = r"G:\My Drive\Projektarbeit_ResearchProject\experiments\IVUS\IVUS_STYLEGAN2_DIFFAUG\IVUS_11_20_2"
 
-    output_dir = r"G:\My Drive\Projektarbeit_ResearchProject\experiments\BUS_classification\FID_over_nkimgs\STYLEGAN2"
+    output_dir = r"G:\My Drive\Projektarbeit_ResearchProject\experiments\IVUS\FID_over_nkimgs\DiffAUG"
     
     create_FID_over_nkimgs_plot(training_session_dir, output_dir, name)

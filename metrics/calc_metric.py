@@ -109,22 +109,22 @@ def main(data, network_pkl, network_kimgs, run_dir):
 
     print("FID score is: ", fid)
 
-    kid = calc_kid(G=G, dataset_kwargs=test_set_kwargs, num_gpus=num_gpus, rank=rank, device=device)
+    # kid = calc_kid(G=G, dataset_kwargs=test_set_kwargs, num_gpus=num_gpus, rank=rank, device=device)
 
-    print("KID score is: ", kid)
+    # print("KID score is: ", kid)
 
-    metric_df = pd.DataFrame(columns=["SSIM mean", "SSIM std", "JS", "fid50k_full", "kid50k_full"])
+    metric_df = pd.DataFrame(columns=["SSIM mean", "SSIM std", "JS", "fid50k_full"])
 
     metric_df = metric_df.append({"SSIM mean" : ssim_mean}, ignore_index=True)
 
     metric_df.loc[metric_df["SSIM mean"]== ssim_mean, "SSIM std"] = ssim_std
     metric_df.loc[metric_df["SSIM mean"]== ssim_mean, "JS"] = js_div
     metric_df.loc[metric_df["SSIM mean"]== ssim_mean, "fid50k_full"] = fid
-    metric_df.loc[metric_df["SSIM mean"]== ssim_mean, "kid50k_full"] = kid
+    # metric_df.loc[metric_df["SSIM mean"]== ssim_mean, "kid50k_full"] = kid
 
     metric_df.to_csv(os.path.join(run_dir, f'metrics_on_test_data_with_model_{network_kimgs}.csv'), index=False)
 
-    print("Exported metrics_on_test_data.csv")
+    print(f"Exported metrics_on_test_data_with_model_{network_kimgs}.csv inside the folder {run_dir}")
 
 if __name__ == "__main__":
     main()
