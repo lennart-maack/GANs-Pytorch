@@ -1,6 +1,6 @@
 # GANs-Pytorch <!-- omit in toc -->
 
-This repository contains different useful functions for training and evaluating GANs
+This repository contains different GAN architectures and functions for dataloading, training and evaluating GANs
 
 ## Table of Content <!-- omit in toc -->
 
