@@ -19,6 +19,14 @@ git clone https://github.com/lennart-maack/GANs-Pytorch.git
 cd GANs-Pytorch
 ```
 
+## Requirements
+
+Run the following command to install all needed requirements - it may be that you have to install other requirements as well - for this try executing the code and look for missing dependencies
+
+```
+pip install -r requirements.txt
+```
+
 ## Dataset
 
 You should structure your dataset in the following way:
