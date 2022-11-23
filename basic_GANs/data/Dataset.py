@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from tqdm.auto import tqdm
 
 
-class Dataset:
+class Dataset():
 
     def __init__(self, dataset_type, dataset_size):
         self.dataset_type = dataset_type
