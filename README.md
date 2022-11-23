@@ -7,7 +7,7 @@ There are two main folders:
    - refer to train_DCGAN.py to start training 
 2. StyleGAN2
    - contains code from [Differentiable Augmentation for Data-Efficient GAN Training](https://github.com/mit-han-lab/data-efficient-gans)
-   - refer to section [Train StyleGAN2](##TrainStyleGAN2) to get information on how to train a basic StyleGAN2, StyleGAN2 with DiffAugment or StyleGAN2ADA (external link)
+   - refer to section [Train StyleGAN2](##Train_StyleGAN2) to get information on how to train a basic StyleGAN2, StyleGAN2 with DiffAugment or StyleGAN2ADA (external link)
 
 
 ## Installation
@@ -46,7 +46,7 @@ dataset/
 ```
 
 
-## Train StyleGAN2
+## Train_StyleGAN2
 - for more in depth information about training options refer to StyleGAN2/train.py line 416 - line 455
 
 ### Train basic StyleGAN2
