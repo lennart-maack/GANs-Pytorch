@@ -12,7 +12,7 @@ There are two main folders:
 
 ## Installation
 
-- clone this repository:
+Clone this repository:
 
 ```
 git clone https://github.com/lennart-maack/GANs-Pytorch.git
@@ -34,8 +34,9 @@ dataset/
 ```
 
 - dataset.json should have the following format:
-- class has to be set to the class index (Either 0 or 1 or .. or n_classes-1) of the according name_of_image_i.png
+  - class has to be set to the class index (Either 0 or 1 or .. or n_classes-1) of the according name_of_image_i.png
 
+Example of dataset.json:
 ```
 {"labels": 
     [["name_of_image_1.png", class],
@@ -47,12 +48,13 @@ dataset/
 
 
 ## Train_StyleGAN2
-- for more in depth information about training options refer to StyleGAN2/train.py line 416 - line 455
+For more in depth information about training options refer to StyleGAN2/train.py line 416 - line 455
 
 ### Train basic StyleGAN2
 
+Needed Training Options
 ```
---data: Where to save your 
+--data: Repository containing the dataset with the structure explained in [Dataset](##dataset)
 --outdir: Where to save your results (including sample imgs, logs etc.)
 --cfg: set the config (cfg) to stylegan2 to use a basic stylegan2 without DiffAugment
 --cond: conditional GAN, True or False
@@ -68,10 +70,11 @@ python3 train.py --data /path/to/dataset --outdir /path/to/outdir --cfg stylegan
 
 ### Train StyleGAN2 DiffAugment
 
+Needed Training Options
 ```
---data: Where to save your 
+--data: Repository containing the dataset with the structure explained in [Dataset](##dataset)
 --outdir: Where to save your results (including sample imgs, logs etc.)
---DiffAugment: Set the augmentations for training the StyleGAN2, options: "color","translation","cutout"
+--DiffAugment: Set the augmentations for training the StyleGAN2 with DiffAugment, options: "color","translation","cutout"
 --cond: conditional GAN, True or False
 --metrics: Metrics to log during training (fid50k_full is best option)
 --batch: batch size to train with
