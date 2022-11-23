@@ -14,7 +14,7 @@ There are two main folders:
 
 - clone this repository:
 
-```python
+```
 git clone https://github.com/lennart-maack/GANs-Pytorch.git
 cd GANs-Pytorch
 ```
